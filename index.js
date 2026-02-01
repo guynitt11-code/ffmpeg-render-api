@@ -48,15 +48,6 @@ app.post("/render", async (req, res) => {
 
 
 
-    // return file
-    res.setHeader("Content-Type", "video/mp4");
-    res.setHeader("Content-Disposition", 'attachment; filename="output.mp4"');
-    fs.createReadStream(outputPath).pipe(res);
-  } catch (e) {
-    res.status(500).json({ ok: false, error: e.message });
-  }
-});
-
 const PORT = Number(process.env.PORT) || 3000;
 
 app.listen(PORT, "0.0.0.0", () => {
