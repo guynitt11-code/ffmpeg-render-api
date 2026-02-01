@@ -46,19 +46,7 @@ app.post("/render", async (req, res) => {
   });
 });
 
-    // concat
-    const listPath = path.join(tmpDir, "list.txt");
-    fs.writeFileSync(listPath, clipPaths.map(p => `file '${p}'`).join("\n"));
 
-    const outputPath = path.join(tmpDir, "output.mp4");
-    await run("ffmpeg", [
-      "-y",
-      "-f", "concat",
-      "-safe", "0",
-      "-i", listPath,
-      "-c", "copy",
-      outputPath
-    ]);
 
     // return file
     res.setHeader("Content-Type", "video/mp4");
