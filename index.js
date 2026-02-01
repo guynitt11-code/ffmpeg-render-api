@@ -22,42 +22,32 @@ function run(cmd, args) {
   });
 }
 
+const { exec } = require("child_process");
+const fs = require("fs");
+const path = require("path");
+
 app.post("/render", async (req, res) => {
-  try {
-    const { source_video_url, clips } = req.body;
+  const { source_video_url, clips } = req.body;
 
-    if (!source_video_url || !Array.isArray(clips) || clips.length === 0) {
-      return res.status(400).json({ ok: false, error: "invalid payload" });
+  const input = "/tmp/input.mp4";
+  const output = "/tmp/output.mp4";
+
+  // הורדת הוידאו
+  await fetch(source_video_url)
+    .then(r => r.arrayBuffer())
+    .then(b => fs.writeFileSync(input, Buffer.from(b)));
+
+  const { start, end } = clips[0];
+  const cmd = `ffmpeg -y -i ${input} -ss ${start} -to ${end} -c copy ${output}`;
+
+  exec(cmd, (err) => {
+    if (err) {
+      return res.status(500).json({ error: "ffmpeg failed", err });
     }
 
-    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "render-"));
-    const inputPath = path.join(tmpDir, "input.mp4");
-
-    // download video
-    await run("curl", ["-L", "-o", inputPath, source_video_url]);
-
-    // cut clips
-    const clipPaths = [];
-    for (let i = 0; i < clips.length; i++) {
-      const { start, end } = clips[i] || {};
-      if (typeof start !== "number" || typeof end !== "number" || end <= start) {
-        return res.status(400).json({ ok: false, error: `invalid clip at index ${i}` });
-      }
-
-      const outPath = path.join(tmpDir, `clip-${i}.mp4`);
-      clipPaths.push(outPath);
-
-      const duration = (end - start).toFixed(3);
-
-      await run("ffmpeg", [
-        "-y",
-        "-ss", String(start),
-        "-i", inputPath,
-        "-t", String(duration),
-        "-c", "copy",
-        outPath
-      ]);
-    }
+    res.download(output, "render.mp4");
+  });
+});
 
     // concat
     const listPath = path.join(tmpDir, "list.txt");
