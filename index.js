@@ -22,9 +22,6 @@ function run(cmd, args) {
   });
 }
 
-const { exec } = require("child_process");
-const fs = require("fs");
-const path = require("path");
 
 app.post("/render", async (req, res) => {
   const { source_video_url, clips } = req.body;
