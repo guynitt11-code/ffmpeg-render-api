@@ -9,12 +9,26 @@ app.get("/health", (req, res) => {
 });
 
 app.post("/render", (req, res) => {
-  const { source_video_url, clips } = req.body;
-  // TODO: Implement ffmpeg rendering
-  res.json({ ok: true, message: "API alive" });
+  const { source_video_url, clips } = req.body || {};
+
+  if (!source_video_url || typeof source_video_url !== "string") {
+    return res.status(400).json({ ok: false, error: "source_video_url is required" });
+  }
+
+  if (!Array.isArray(clips)) {
+    return res.status(400).json({ ok: false, error: "clips must be an array" });
+  }
+
+  console.log("Render request:", {
+    source_video_url,
+    clips_count: clips.length
+  });
+
+  res.json({
+    ok: true,
+    message: "validated",
+    received: { source_video_url, clips_count: clips.length }
+  });
 });
 
-const PORT = process.env.PORT;
-app.listen(PORT, "0.0.0.0", () => {
-  console.log(`Server running on port ${PORT}`);
-});
+const PORT = process.env.PORT || 3000;
