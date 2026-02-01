@@ -13,35 +13,33 @@ app.post("/render", async (req, res) => {
   try {
     const { source_video_url, clips } = req.body;
 
-    if (!source_video_url || !Array.isArray(clips) || clips.length === 0) {
-      return res.status(400).json({ ok: false, error: "invalid payload" });
-    }
-
-    const { start, end } = clips[0];
-    if (typeof start !== "number" || typeof end !== "number" || end <= start) {
-      return res.status(400).json({ ok: false, error: "invalid clip range" });
+    if (!source_video_url || !clips || !clips.length) {
+      return res.status(400).json({ error: "missing input" });
     }
 
     const input = "/tmp/input.mp4";
     const output = "/tmp/output.mp4";
 
-    const buf = Buffer.from(await (await fetch(source_video_url)).arrayBuffer());
-    fs.writeFileSync(input, buf);
+    // download video
+    const r = await fetch(source_video_url);
+    const b = await r.arrayBuffer();
+    fs.writeFileSync(input, Buffer.from(b));
 
-    const cmd = `ffmpeg -y -i ${input} -ss ${start} -to ${end} -c copy ${output}`;
+    const { start, end } = clips[0];
 
-    exec(cmd, (err, stdout, stderr) => {
+    // re-encode to guarantee valid output
+    const cmd = `ffmpeg -y -i ${input} -ss ${start} -to ${end} -c:v libx264 -c:a aac ${output}`;
+
+    exec(cmd, (err) => {
       if (err) {
-        return res.status(500).json({
-          ok: false,
-          error: "ffmpeg failed",
-          details: (stderr || err.message || "").slice(0, 2000),
-        });
+        return res.status(500).json({ error: "ffmpeg failed", details: err.message });
       }
+
       res.download(output, "render.mp4");
     });
+
   } catch (e) {
-    res.status(500).json({ ok: false, error: e.message });
+    res.status(500).json({ error: e.message });
   }
 });
 
